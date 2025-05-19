@@ -1,0 +1,27 @@
+/* style.css */
+body {
+  font-family: monospace;
+  background-color: #ffffff;
+  color: #000000;
+  padding: 40px;
+  max-width: 600px;
+  margin: auto;
+  line-height: 1.6;
+}
+h1 {
+  font-size: 1.8em;
+}
+a {
+  display: block;
+  margin-bottom: 8px;
+  color: #0000EE;
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+.note {
+  margin-top: 20px;
+  font-style: italic;
+  font-size: 0.95em;
+}
