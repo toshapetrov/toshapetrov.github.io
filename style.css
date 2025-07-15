@@ -25,3 +25,33 @@ a:hover {
   font-style: italic;
   font-size: 0.95em;
 }
+
+.exhibitions-list {
+  list-style: none;
+  padding-left: 0;
+  margin-top: 20px;
+}
+
+.exhibitions-list li {
+  margin-bottom: 12px;
+}
+
+.exhibitions-list a {
+  text-decoration: underline;
+  color: #000;
+  transition: opacity 0.2s ease;
+}
+
+.exhibitions-list a:hover {
+  opacity: 0.7;
+}
+
+.external-link {
+  text-decoration: underline;
+  color: #000;
+  transition: opacity 0.2s ease;
+}
+
+.external-link:hover {
+  opacity: 0.7;
+}
