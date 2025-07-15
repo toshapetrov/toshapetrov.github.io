@@ -1,9 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://toshapetrov.github.io/</loc></url>
-  <url><loc>https://toshapetrov.github.io/art-statement.html</loc></url>
-  <url><loc>https://toshapetrov.github.io/portfolio.html</loc></url>
-  <url><loc>https://toshapetrov.github.io/exhibitions.html</loc></url>
-  <url><loc>https://toshapetrov.github.io/collaborations.html</loc></url>
-  <url><loc>https://toshapetrov.github.io/contact.html</loc></url>
+
+  <!-- Основные страницы -->
+  <url><loc>https://toshapetrov.ru/</loc></url>
+  <url><loc>https://toshapetrov.ru/art-statement.html</loc></url>
+  <url><loc>https://toshapetrov.ru/portfolio.html</loc></url>
+  <url><loc>https://toshapetrov.ru/exhibitions.html</loc></url>
+  <url><loc>https://toshapetrov.ru/collaborations.html</loc></url>
+  <url><loc>https://toshapetrov.ru/contact.html</loc></url>
+
+  <!-- Страницы выставок -->
+  <url><loc>https://toshapetrov.ru/exhibitions/festival-nur-2025.html</loc></url>
+  <url><loc>https://toshapetrov.ru/exhibitions/ai-surrealism-2023.html</loc></url>
+  <url><loc>https://toshapetrov.ru/exhibitions/nft-paris-2023.html</loc></url>
+  <url><loc>https://toshapetrov.ru/exhibitions/nft-korea-2023.html</loc></url>
+  <url><loc>https://toshapetrov.ru/exhibitions/nft-nyc-2023.html</loc></url>
+  <url><loc>https://toshapetrov.ru/exhibitions/art-life-2023.html</loc></url>
+  <url><loc>https://toshapetrov.ru/exhibitions/moscow-fest-2023.html</loc></url>
+  <url><loc>https://toshapetrov.ru/exhibitions/festival-outline-2025.html</loc></url>
+  <url><loc>https://toshapetrov.ru/exhibitions/vnutrishow-2025.html</loc></url>
+  <url><loc>https://toshapetrov.ru/exhibitions/meoldica-gazgolder-2025.html</loc></url>
+
 </urlset>
