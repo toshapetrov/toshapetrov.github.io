@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scanner Distortion Lab Creative Pro (Noise & Hotkeys)</title>
+    <!-- Зависимости -->
+    <script src="https://unpkg.com/react@17/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #05070a;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            cursor: pointer;
+            box-shadow: 0 0 4px rgba(0, 255, 140, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        function App() {
+            const [imgUrl, setImgUrl] = useState("https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80");
+            const [scanning, setScanning] = useState(false);
+            
+            // Направление захвата и диапазон
+            const [sweepMode, setSweepMode] = useState("L_to_R"); // L_to_R, R_to_L, T_to_B, B_to_T
+            const [scanStart, setScanStart] = useState(0);        
+            const [scanEnd, setScanEnd] = useState(480);          
+            const [scanPos, setScanPos] = useState(0);            
+            const [loopBehavior, setLoopBehavior] = useState("once"); // once, loop, pingpong
+            const [pingpongDir, setPingpongDir] = useState(1);     
+
+            const [speed, setSpeed] = useState(0.5); 
+            const [noise, setNoise] = useState(15);
+            const [colorMode, setColorMode] = useState("color");
+            const [scanLineColor, setScanLineColor] = useState("#00ff8c");
+            const [isRainbowX, setIsRainbowX] = useState(false);
+            const [verticalWave, setVerticalWave] = useState(0);
+            const [waveAmplitude, setWaveWaveAmplitude] = useState(5);
+            const [bgColor, setBgColor] = useState("#0a0d11");
+
+            const [scale, setScale] = useState(1);
+            const [offset, setOffset] = useState({ x: 0, y: 0 });
+            const [isDragging, setIsDragging] = useState(false);
+            const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+            const workspaceRef = useRef(null);
+            const resultRef = useRef(null);
+            const imageRef = useRef(null);
+            const animationFrameRef = useRef(null);
+
+            const isHorizontal = sweepMode === "L_to_R" || sweepMode === "R_to_L";
+
+            // Refs for keeping state synced with global event listeners
+            const stateRef = useRef({ scanning, sweepMode, speed, scanStart, scanEnd, scanPos });
+            useEffect(() => {
+                stateRef.current = { scanning, sweepMode, speed, scanStart, scanEnd, scanPos };
+            }, [scanning, sweepMode, speed, scanStart, scanEnd, scanPos]);
+
+            // Global Key Down Listener for Hotkeys
+            useEffect(() => {
+                const handleKeyDown = (e) => {
+                    const current = stateRef.current;
+                    if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") {
+                        return; // Ignore inside input fields
+                    }
+
+                    // Space: toggle scanning
+                    if (e.code === "Space") {
+                        e.preventDefault();
+                        handleStartScan();
+                    }
+
+                    // 'D' key or Arrow Keys to cycle direction
+                    if (e.code === "KeyD" || e.code === "ArrowRight" || e.code === "ArrowDown") {
+                        e.preventDefault();
+                        const modes = ["L_to_R", "R_to_L", "T_to_B", "B_to_T"];
+                        const nextIdx = (modes.indexOf(current.sweepMode) + 1) % modes.length;
+                        setSweepMode(modes[nextIdx]);
+                        handleClearOutput();
+                    } else if (e.code === "ArrowLeft" || e.code === "ArrowUp") {
+                        e.preventDefault();
+                        const modes = ["L_to_R", "R_to_L", "T_to_B", "B_to_T"];
+                        const prevIdx = (modes.indexOf(current.sweepMode) - 1 + modes.length) % modes.length;
+                        setSweepMode(modes[prevIdx]);
+                        handleClearOutput();
+                    }
+
+                    // SPEED: ], = or + to increase
+                    if (e.code === "BracketRight" || e.code === "Equal" || e.key === "+") {
+                        e.preventDefault();
+                        setSpeed((prev) => Math.min(10.0, +(prev + 0.1).toFixed(1)));
+                    }
+                    // SPEED: [, - to decrease
+                    if (e.code === "BracketLeft" || e.code === "Minus" || e.key === "-") {
+                        e.preventDefault();
+                        setSpeed((prev) => Math.max(0.1, +(prev - 0.1).toFixed(1)));
+                    }
+                };
+
+                window.addEventListener("keydown", handleKeyDown);
+                return () => {
+                    window.removeEventListener("keydown", handleKeyDown);
+                };
+            }, []);
+
+            useEffect(() => {
+                resetScanPosition();
+            }, [sweepMode, scanStart, scanEnd]);
+
+            const resetScanPosition = () => {
+                if (sweepMode === "L_to_R" || sweepMode === "T_to_B") {
+                    setScanPos(scanStart);
+                    setPingpongDir(1);
+                } else if (sweepMode === "R_to_L" || sweepMode === "B_to_T") {
+                    setScanPos(scanEnd);
+                    setPingpongDir(-1);
+                }
+            };
+
+            useEffect(() => {
+                const img = new Image();
+                img.crossOrigin = "anonymous";
+                img.onload = () => {
+                    imageRef.current = img;
+                    resetWorkspacePosition(img);
+                };
+                img.src = imgUrl;
+            }, [imgUrl]);
+
+            const resetWorkspacePosition = (img) => {
+                if (!img || !workspaceRef.current) return;
+                const canvas = workspaceRef.current;
+                const scaleX = (canvas.width * 0.8) / img.width;
+                const scaleY = (canvas.height * 0.8) / img.height;
+                const newScale = Math.min(scaleX, scaleY, 1);
+                
+                setScale(newScale);
+                setOffset({
+                    x: (canvas.width - img.width * newScale) / 2,
+                    y: (canvas.height - img.height * newScale) / 2
+                });
+            };
+
+            const drawWorkspace = () => {
+                const canvas = workspaceRef.current;
+                if (!canvas) return;
+                const ctx = canvas.getContext("2d");
+                
+                ctx.fillStyle = bgColor;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.strokeStyle = "rgba(45, 60, 80, 0.4)";
+                ctx.lineWidth = 1;
+                const gridSize = 25;
+                for (let x = 0; x < canvas.width; x += gridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, canvas.height);
+                    ctx.stroke();
+                }
+                for (let y = 0; y < canvas.height; y += gridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(canvas.width, y);
+                    ctx.stroke();
+                }
+
+                // Guides line boundaries
+                try {
+                    ctx.strokeStyle = "rgba(100, 116, 139, 0.5)";
+                    ctx.setLineDash([4, 4]);
+                    ctx.lineWidth = 1;
+                    if (isHorizontal) {
+                        ctx.beginPath(); ctx.moveTo(scanStart, 0); ctx.lineTo(scanStart, canvas.height); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(scanEnd, 0); ctx.lineTo(scanEnd, canvas.height); ctx.stroke();
+                    } else {
+                        ctx.beginPath(); ctx.moveTo(0, scanStart); ctx.lineTo(canvas.width, scanStart); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(0, scanEnd); ctx.lineTo(canvas.width, scanEnd); ctx.stroke();
+                    }
+                    ctx.setLineDash([]);
+                } catch(e){}
+
+                if (imageRef.current) {
+                    ctx.save();
+                    ctx.translate(offset.x, offset.y);
+                    ctx.scale(scale, scale);
+                    ctx.drawImage(imageRef.current, 0, 0);
+                    ctx.restore();
+                }
+            };
+
+            useEffect(() => {
+                drawWorkspace();
+                const canvas = workspaceRef.current;
+                if (canvas) {
+                    const ctx = canvas.getContext("2d");
+                    ctx.strokeStyle = scanLineColor;
+                    ctx.lineWidth = 3;
+                    ctx.shadowColor = scanLineColor;
+                    ctx.shadowBlur = 8;
+                    
+                    const roundedPos = Math.floor(scanPos);
+                    ctx.beginPath();
+                    if (isHorizontal) {
+                        ctx.moveTo(roundedPos, 0);
+                        ctx.lineTo(roundedPos, canvas.height);
+                    } else {
+                        ctx.moveTo(0, roundedPos);
+                        ctx.lineTo(canvas.width, roundedPos);
+                    }
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+                }
+            }, [scale, offset, scanPos, scanning, sweepMode, bgColor, scanLineColor, scanStart, scanEnd]);
+
+            useEffect(() => {
+                if (!scanning) {
+                    if (animationFrameRef.current) {
+                        cancelAnimationFrame(animationFrameRef.current);
+                    }
+                    return;
+                }
+
+                const runScan = () => {
+                    const srcCanvas = workspaceRef.current;
+                    const dstCanvas = resultRef.current;
+                    if (!srcCanvas || !dstCanvas) return;
+
+                    const srcCtx = srcCanvas.getContext("2d");
+                    const dstCtx = dstCanvas.getContext("2d");
+
+                    drawWorkspace();
+
+                    const currentPos = Math.floor(scanPos);
+                    const roundedSliceWidth = Math.max(1, Math.ceil(speed));
+
+                    if (isHorizontal) {
+                        try {
+                            const slice = srcCtx.getImageData(currentPos, 0, roundedSliceWidth, srcCanvas.height);
+                            const data = slice.data;
+                            
+                            for (let y = 0; y < srcCanvas.height; y++) {
+                                for (let dx = 0; y < srcCanvas.height && dx < roundedSliceWidth; dx++) {
+                                    const i = (y * roundedSliceWidth + dx) * 4;
+                                    
+                                    let r = data[i];
+                                    let g = data[i+1];
+                                    let b = data[i+2];
+
+                                    if (verticalWave > 0) {
+                                        const shiftY = Math.sin((currentPos * 0.05) + (y * verticalWave * 0.1)) * waveAmplitude;
+                                        const sourceYCoord = Math.min(srcCanvas.height - 1, Math.max(0, Math.floor(y + shiftY)));
+                                        const tempPixel = srcCtx.getImageData(currentPos, sourceYCoord, 1, 1).data;
+                                        r = tempPixel[0];
+                                        g = tempPixel[1];
+                                        b = tempPixel[2];
+                                    }
+
+                                    if (colorMode === "mono") {
+                                        const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+                                        r = g = b = gray;
+                                    } else if (colorMode === "neon") {
+                                        const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+                                        r = gray * 0.1; g = gray * 1.5; b = gray * 0.9;
+                                    } else if (colorMode === "amber") {
+                                        const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+                                        r = gray * 1.4; g = gray * 0.75; b = gray * 0.05;
+                                    }
+
+                                    if (isRainbowX) {
+                                        const shiftAmt = Math.sin(currentPos * 0.1) * 30;
+                                        r = Math.min(255, r + shiftAmt);
+                                        b = Math.min(255, b - shiftAmt);
+                                    }
+
+                                    if (noise > 0) {
+                                        const noiseVal = (Math.random() - 0.5) * noise * 2.5;
+                                        r = Math.min(255, Math.max(0, r + noiseVal));
+                                        g = Math.min(255, Math.max(0, g + noiseVal));
+                                        b = Math.min(255, Math.max(0, b + noiseVal));
+                                    }
+
+                                    data[i] = r;
+                                    data[i+1] = g;
+                                    data[i+2] = b;
+                                }
+                            }
+                            dstCtx.putImageData(slice, currentPos, 0);
+                        } catch (e) {
+                            console.error(e);
+                        }
+                    } else {
+                        try {
+                            const slice = srcCtx.getImageData(0, currentPos, srcCanvas.width, roundedSliceWidth);
+                            const data = slice.data;
+                            
+                            for (let x = 0; x < srcCanvas.width; x++) {
+                                for (let dy = 0; dy < roundedSliceWidth; dy++) {
+                                    const i = (dy * srcCanvas.width + x) * 4;
+                                    
+                                    let r = data[i];
+                                    let g = data[i+1];
+                                    let b = data[i+2];
+
+                                    if (verticalWave > 0) {
+                                        const shiftX = Math.sin((currentPos * 0.05) + (x * verticalWave * 0.1)) * waveAmplitude;
+                                        const sourceXCoord = Math.min(srcCanvas.width - 1, Math.max(0, Math.floor(x + shiftX)));
+                                        const tempPixel = srcCtx.getImageData(sourceXCoord, currentPos, 1, 1).data;
+                                        r = tempPixel[0];
+                                        g = tempPixel[1];
+                                        b = tempPixel[2];
+                                    }
+
+                                    if (colorMode === "mono") {
+                                        const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+                                        r = g = b = gray;
+                                    } else if (colorMode === "neon") {
+                                        const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+                                        r = gray * 0.1; g = gray * 1.5; b = gray * 0.9;
+                                    } else if (colorMode === "amber") {
+                                        const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+                                        r = gray * 1.4; g = gray * 0.75; b = gray * 0.05;
+                                    }
+
+                                    if (isRainbowX) {
+                                        const shiftAmt = Math.sin(currentPos * 0.1) * 30;
+                                        r = Math.min(255, r + shiftAmt);
+                                        b = Math.min(255, b - shiftAmt);
+                                    }
+
+                                    if (noise > 0) {
+                                        const noiseVal = (Math.random() - 0.5) * noise * 2.5;
+                                        r = Math.min(255, Math.max(0, r + noiseVal));
+                                        g = Math.min(255, Math.max(0, g + noiseVal));
+                                        b = Math.min(255, Math.max(0, b + noiseVal));
+                                    }
+
+                                    data[i] = r;
+                                    data[i+1] = g;
+                                    data[i+2] = b;
+                                }
+                            }
+                            dstCtx.putImageData(slice, 0, currentPos);
+                        } catch (e) {
+                            console.error(e);
+                        }
+                    }
+
+                    let nextPos = scanPos;
+                    let currentDir = pingpongDir;
+                    const movingForward = sweepMode === "L_to_R" || sweepMode === "T_to_B";
+
+                    if (loopBehavior === "pingpong") {
+                        nextPos = scanPos + (speed * currentDir);
+                        if (nextPos >= scanEnd) {
+                            nextPos = scanEnd;
+                            setPingpongDir(-1);
+                        } else if (nextPos <= scanStart) {
+                            nextPos = scanStart;
+                            setPingpongDir(1);
+                        }
+                    } else {
+                        if (movingForward) {
+                            nextPos = scanPos + speed;
+                            if (nextPos >= scanEnd) {
+                                if (loopBehavior === "loop") {
+                                    nextPos = scanStart;
+                                } else {
+                                    nextPos = scanEnd;
+                                    setScanning(false);
+                                }
+                            }
+                        } else {
+                            nextPos = scanPos - speed;
+                            if (nextPos <= scanStart) {
+                                if (loopBehavior === "loop") {
+                                    nextPos = scanEnd;
+                                } else {
+                                    nextPos = scanStart;
+                                    setScanning(false);
+                                }
+                            }
+                        }
+                    }
+
+                    setScanPos(nextPos);
+                    animationFrameRef.current = requestAnimationFrame(runScan);
+                };
+
+                animationFrameRef.current = requestAnimationFrame(runScan);
+
+                return () => {
+                    if (animationFrameRef.current) {
+                        cancelAnimationFrame(animationFrameRef.current);
+                    }
+                };
+            }, [scanning, scanPos, sweepMode, speed, colorMode, noise, scale, offset, verticalWave, waveAmplitude, isRainbowX, scanStart, scanEnd, loopBehavior, pingpongDir]);
+
+            const handleMouseDown = (e) => {
+                const rect = workspaceRef.current.getBoundingClientRect();
+                setIsDragging(true);
+                setDragStart({
+                    x: e.clientX - rect.left - offset.x,
+                    y: e.clientY - rect.top - offset.y
+                });
+            };
+
+            const handleMouseMove = (e) => {
+                if (!isDragging) return;
+                const rect = workspaceRef.current.getBoundingClientRect();
+                const x = e.clientX - rect.left - dragStart.x;
+                const y = e.clientY - rect.top - dragStart.y;
+                setOffset({ x, y });
+            };
+
+            const handleMouseUpOrLeave = () => {
+                setIsDragging(false);
+            };
+
+            const handleWheel = (e) => {
+                e.preventDefault();
+                const rect = workspaceRef.current.getBoundingClientRect();
+                const mX = e.clientX - rect.left;
+                const mY = e.clientY - rect.top;
+
+                const zoomIntensity = 0.1;
+                const zoomFactor = e.deltaY < 0 ? (1 + zoomIntensity) : (1 - zoomIntensity);
+                const newScale = Math.min(Math.max(0.1, scale * zoomFactor), 10);
+
+                const dx = mX - offset.x;
+                const dy = mY - offset.y;
+                const newOffsetX = mX - dx * (newScale / scale);
+                const newOffsetY = mY - dy * (newScale / scale);
+
+                setScale(newScale);
+                setOffset({ x: newOffsetX, y: newOffsetY });
+            };
+
+            const handleStartScan = () => {
+                const current = stateRef.current;
+                const movingForward = current.sweepMode === "L_to_R" || current.sweepMode === "T_to_B";
+                if (movingForward && current.scanPos >= current.scanEnd) {
+                    setScanPos(current.scanStart);
+                } else if (!movingForward && current.scanPos <= current.scanStart) {
+                    setScanPos(current.scanEnd);
+                }
+                setScanning((prev) => !prev);
+            };
+
+            const handleClearOutput = () => {
+                const canvas = resultRef.current;
+                if (canvas) {
+                    const ctx = canvas.getContext("2d");
+                    ctx.fillStyle = bgColor;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                }
+                resetScanPosition();
+                setScanning(false);
+            };
+
+            const handleFileUpload = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        setImgUrl(event.target.result);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const handleExport = () => {
+                const canvas = resultRef.current;
+                if (!canvas) return;
+                const dataUrl = canvas.toDataURL("image/png");
+                const link = document.createElement("a");
+                link.download = `scanner_distortion_${Date.now()}.png`;
+                link.href = dataUrl;
+                link.click();
+            };
+
+            const loadPreset = (url) => {
+                setImgUrl(url);
+                handleClearOutput();
+            };
+
+            return (
+                <div className="min-h-screen bg-[#05070a] text-gray-100 flex flex-col font-sans select-none pb-6">
+                    <header className="px-6 py-4 flex items-center justify-between border-b border-[#141a21]/80 bg-[#090b0e]">
+                        <div className="flex items-center gap-3">
+                            <div className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></div>
+                            <div>
+                                <h1 className="text-lg font-black tracking-widest text-emerald-400 uppercase">
+                                    Scanner Distortion Lab Creative
+                                </h1>
+                                <p className="text-xs text-gray-500 font-mono">Precision Sweep Position, Noise & Hotkeys Controller</p>
+                            </div>
+                        </div>
+                        <div className="text-xs text-emerald-400/80 font-mono bg-emerald-950/40 border border-emerald-900/50 px-3 py-1.5 rounded">
+                            Status: {scanning ? "RUNNING @ " + speed + " px/F" : "READY"}
+                        </div>
+                    </header>
+
+                    <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        <div className="lg:col-span-6 flex flex-col bg-[#0b0e12] border border-[#1b232c] rounded-lg overflow-hidden shadow-xl shadow-black/40">
+                            <div className="p-3 bg-[#0d1217] border-b border-[#1b232c] flex justify-between items-center">
+                                <span className="text-xs font-bold font-mono tracking-wider text-gray-400 flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-blue-400"></span> A. WORKSPACE (INTERACTIVE)
+                                </span>
+                                <span className="text-[10px] text-gray-500 font-mono">Drag to move · Wheel to zoom</span>
+                            </div>
+                            <div className="flex-1 bg-black flex items-center justify-center p-4 relative min-h-[400px]">
+                                <canvas
+                                    ref={workspaceRef}
+                                    width={480}
+                                    height={480}
+                                    className="max-w-full aspect-square border border-emerald-900/30 rounded cursor-grab active:cursor-grabbing shadow-inner shadow-black/80"
+                                    onMouseDown={handleMouseDown}
+                                    onMouseMove={handleMouseMove}
+                                    onMouseUp={handleMouseUpOrLeave}
+                                    onMouseLeave={handleMouseUpOrLeave}
+                                    onWheel={handleWheel}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="lg:col-span-6 flex flex-col bg-[#0b0e12] border border-[#1b232c] rounded-lg overflow-hidden shadow-xl shadow-black/40">
+                            <div className="p-3 bg-[#0d1217] border-b border-[#1b232c] flex justify-between items-center">
+                                <span className="text-xs font-bold font-mono tracking-wider text-gray-400 flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-400"></span> B. SCANNING RESULT (OUTPUT)
+                                </span>
+                                <span className="text-[10px] text-emerald-400 font-mono">Laser: {Math.floor(scanPos)}px</span>
+                            </div>
+                            <div className="flex-1 bg-black flex items-center justify-center p-4 relative min-h-[400px]">
+                                <canvas
+                                    ref={resultRef}
+                                    width={480}
+                                    height={480}
+                                    className="max-w-full aspect-square border border-emerald-900/30 rounded shadow-inner shadow-black/80"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-4 gap-6 bg-[#0b0e12] border border-[#1b232c] rounded-lg p-5">
+                            <div className="flex flex-col justify-between space-y-4">
+                                <div>
+                                    <label className="text-xs font-bold font-mono text-gray-400 block mb-2 uppercase">1. Image Input</label>
+                                    <label className="flex items-center justify-center gap-2 bg-[#141a22] hover:bg-[#1a232f] border border-[#2b3949] text-sm text-gray-300 py-2.5 px-4 rounded cursor-pointer transition mb-2">
+                                        <i className="fa-solid fa-cloud-arrow-up text-emerald-400"></i>
+                                        <span>Upload Local File</span>
+                                        <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
+                                    </label>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => loadPreset("https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80")}
+                                            className="flex-1 text-[10px] font-mono py-1 bg-[#10141b] border border-[#1c2430] hover:border-emerald-500 rounded text-gray-300">Port 1</button>
+                                        <button onClick={() => loadPreset("https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=80")}
+                                            className="flex-1 text-[10px] font-mono py-1 bg-[#10141b] border border-[#1c2430] hover:border-emerald-500 rounded text-gray-300">Port 2</button>
+                                        <button onClick={() => loadPreset("https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=800&q=80")}
+                                            className="flex-1 text-[10px] font-mono py-1 bg-[#10141b] border border-[#1c2430] hover:border-emerald-500 rounded text-gray-300">Concept</button>
+                                    </div>
+                                </div>
+
+                                <div className="border-t border-[#131920] pt-3">
+                                    <label className="text-xs font-bold font-mono text-gray-400 block mb-1 uppercase">Laser Behavior</label>
+                                    <div className="grid grid-cols-3 gap-1">
+                                        <button onClick={() => setLoopBehavior("once")}
+                                            className={`py-1 rounded text-[10px] font-mono border transition ${loopBehavior === "once" ? "bg-emerald-950/65 text-emerald-400 border-emerald-400" : "bg-[#141a22] text-gray-400 border-[#2b3949]"}`}>
+                                            Once
+                                        </button>
+                                        <button onClick={() => setLoopBehavior("loop")}
+                                            className={`py-1 rounded text-[10px] font-mono border transition ${loopBehavior === "loop" ? "bg-emerald-950/65 text-emerald-400 border-emerald-400" : "bg-[#141a22] text-gray-400 border-[#2b3949]"}`}>
+                                            Loop
+                                        </button>
+                                        <button onClick={() => setLoopBehavior("pingpong")}
+                                            className={`py-1 rounded text-[10px] font-mono border transition ${loopBehavior === "pingpong" ? "bg-emerald-950/65 text-emerald-400 border-emerald-400" : "bg-[#141a22] text-gray-400 border-[#2b3949]"}`}>
+                                            Bounce
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4 bg-[#0d1117] p-3 rounded-lg border border-[#1c2630]">
+                                <label className="text-xs font-bold font-mono text-emerald-400 block uppercase tracking-wider">
+                                    <i className="fa-solid fa-arrows-to-dot mr-1"></i> 2. Sweep & Range Settings
+                                </label>
+
+                                <div>
+                                    <span className="text-[11px] font-mono text-gray-400 block mb-1.5">Sweep Direction:</span>
+                                    <div className="grid grid-cols-2 gap-1.5">
+                                        <button onClick={() => { setSweepMode("L_to_R"); handleClearOutput(); }}
+                                            className={`py-1.5 px-1 rounded text-[10px] font-mono border transition text-center ${sweepMode === "L_to_R" ? "bg-emerald-950/80 text-emerald-300 border-emerald-400" : "bg-[#141a22] text-gray-400 border-[#2b3949]"}`}>
+                                            Left → Right
+                                        </button>
+                                        <button onClick={() => { setSweepMode("R_to_L"); handleClearOutput(); }}
+                                            className={`py-1.5 px-1 rounded text-[10px] font-mono border transition text-center ${sweepMode === "R_to_L" ? "bg-emerald-950/80 text-emerald-300 border-emerald-400" : "bg-[#141a22] text-gray-400 border-[#2b3949]"}`}>
+                                            Right ← Left
+                                        </button>
+                                        <button onClick={() => { setSweepMode("T_to_B"); handleClearOutput(); }}
+                                            className={`py-1.5 px-1 rounded text-[10px] font-mono border transition text-center ${sweepMode === "T_to_B" ? "bg-emerald-950/80 text-emerald-300 border-emerald-400" : "bg-[#141a22] text-gray-400 border-[#2b3949]"}`}>
+                                            Top ↓ Bottom
+                                        </button>
+                                        <button onClick={() => { setSweepMode("B_to_T"); handleClearOutput(); }}
+                                            className={`py-1.5 px-1 rounded text-[10px] font-mono border transition text-center ${sweepMode === "B_to_T" ? "bg-emerald-950/80 text-emerald-300 border-emerald-400" : "bg-[#141a22] text-gray-400 border-[#2b3949]"}`}>
+                                            Bottom ↑ Top
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2 border-t border-[#1a2530] pt-2">
+                                    <div>
+                                        <div className="flex justify-between text-[11px] font-mono text-gray-400">
+                                            <span>Scan Limit Start:</span>
+                                            <span className="text-emerald-400 font-bold">{scanStart} px</span>
+                                        </div>
+                                        <input 
+                                            type="range" 
+                                            min={0} 
+                                            max={440} 
+                                            step={10}
+                                            value={scanStart} 
+                                            onChange={(e) => {
+                                                const val = parseInt(e.target.value);
+                                                setScanStart(val);
+                                                if(val >= scanEnd) setScanEnd(val + 40);
+                                            }}
+                                            className="w-full accent-emerald-400" 
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <div className="flex justify-between text-[11px] font-mono text-gray-400">
+                                            <span>Scan Limit End:</span>
+                                            <span className="text-emerald-400 font-bold">{scanEnd} px</span>
+                                        </div>
+                                        <input 
+                                            type="range" 
+                                            min={scanStart + 40} 
+                                            max={480} 
+                                            step={10}
+                                            value={scanEnd} 
+                                            onChange={(e) => {
+                                                const val = parseInt(e.target.value);
+                                                setScanEnd(val);
+                                            }}
+                                            className="w-full accent-emerald-400" 
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="border-t border-[#1a2530] pt-2">
+                                    <div className="flex justify-between text-[11px] font-mono text-gray-400">
+                                        <span>Manual Laser Pos:</span>
+                                        <span className="text-purple-400 font-bold">{Math.floor(scanPos)} px</span>
+                                    </div>
+                                    <input 
+                                        type="range" 
+                                        min={scanStart} 
+                                        max={scanEnd} 
+                                        step={1}
+                                        value={Math.floor(scanPos)} 
+                                        onChange={(e) => {
+                                            setScanPos(parseInt(e.target.value));
+                                        }}
+                                        className="w-full accent-purple-400" 
+                                    />
+                                    <span className="text-[9px] text-gray-500 block">Scrub manually to make precise localized distortions</span>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <label className="text-xs font-bold font-mono text-gray-400 block mb-1 uppercase">3. Physics & Waves</label>
+                                
+                                <div className="space-y-3">
+                                    <div>
+                                        <div className="flex justify-between text-xs font-mono text-gray-400 mb-1">
+                                            <span>Scan Speed:</span>
+                                            <span className="text-emerald-400 font-bold">{speed} px/Frame</span>
+                                        </div>
+                                        <input 
+                                            type="range" 
+                                            min={0.1} 
+                                            max={10.0} 
+                                            step={0.1}
+                                            value={speed} 
+                                            onChange={(e) => setSpeed(parseFloat(e.target.value))}
+                                            className="w-full accent-emerald-500" 
+                                        />
+                                        <span className="text-[9px] text-gray-500 block">Less speeds yields higher stretch detail</span>
+                                    </div>
+
+                                    <div>
+                                        <div className="flex justify-between text-xs font-mono mb-1">
+                                            <span>Wave Synth:</span>
+                                            <span className="text-purple-400 font-bold">{verticalWave === 0 ? "OFF" : verticalWave + " Hz"}</span>
+                                        </div>
+                                        <input 
+                                            type="range" 
+                                            min={0} 
+                                            max={10} 
+                                            step={1}
+                                            value={verticalWave} 
+                                            onChange={(e) => setVerticalWave(parseInt(e.target.value))}
+                                            className="w-full accent-purple-500" 
+                                        />
+                                    </div>
+
+                                    <div className={verticalWave === 0 ? "opacity-30 pointer-events-none transition" : "transition"}>
+                                        <div className="flex justify-between text-xs font-mono mb-1">
+                                            <span>Wave Amplitude:</span>
+                                            <span className="text-purple-400 font-bold">{waveAmplitude} px</span>
+                                        </div>
+                                        <input 
+                                            type="range" 
+                                            min={1} 
+                                            max={50} 
+                                            step={1}
+                                            value={waveAmplitude} 
+                                            onChange={(e) => setWaveWaveAmplitude(parseInt(e.target.value))}
+                                            className="w-full accent-purple-500" 
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3 flex flex-col justify-between">
+                                <div>
+                                    <label className="text-xs font-bold font-mono text-gray-400 block mb-1 uppercase">4. Color, Line & Noise</label>
+                                    
+                                    <div className="grid grid-cols-4 gap-1 mb-2">
+                                        <button onClick={() => setColorMode("color")}
+                                            className={`py-1 rounded text-[10px] font-mono border transition ${colorMode === "color" ? "bg-emerald-950/60 text-emerald-400 border-emerald-400" : "bg-[#141a22] text-gray-400 border-[#2b3949]"}`}>RGB</button>
+                                        <button onClick={() => setColorMode("mono")}
+                                            className={`py-1 rounded text-[10px] font-mono border transition ${colorMode === "mono" ? "bg-emerald-950/60 text-emerald-400 border-emerald-400" : "bg-[#141a22] text-gray-400 border-[#2b3949]"}`}>Mono</button>
+                                        <button onClick={() => setColorMode("neon")}
+                                            className={`py-1 rounded text-[10px] font-mono border transition ${colorMode === "neon" ? "bg-emerald-950/60 text-emerald-400 border-emerald-400" : "bg-[#141a22] text-gray-400 border-[#2b3949]"}`}>Neon</button>
+                                        <button onClick={() => setColorMode("amber")}
+                                            className={`py-1 rounded text-[10px] font-mono border transition ${colorMode === "amber" ? "bg-emerald-950/60 text-emerald-400 border-emerald-400" : "bg-[#141a22] text-gray-400 border-[#2b3949]"}`}>Amber</button>
+                                    </div>
+
+                                    <div className="space-y-2 mb-3">
+                                        <div className="flex justify-between text-xs font-mono text-gray-400">
+                                            <span>Noise Grain:</span>
+                                            <span className="text-gray-300 font-bold">{noise} %</span>
+                                        </div>
+                                        <input 
+                                            type="range" 
+                                            min={0} 
+                                            max={100} 
+                                            step={1}
+                                            value={noise} 
+                                            onChange={(e) => setNoise(parseInt(e.target.value))}
+                                            className="w-full accent-emerald-500" 
+                                        />
+                                    </div>
+
+                                    <div className="flex gap-2 items-center mb-2">
+                                        <div className="flex-1 flex gap-1 bg-[#141a22] p-1 rounded border border-[#2b3949] items-center justify-between">
+                                            <span className="text-[10px] font-mono text-gray-400">Beam:</span>
+                                            <input type="color" value={scanLineColor} onChange={(e) => setScanLineColor(e.target.value)} className="w-5 h-5 border-0 bg-transparent cursor-pointer" />
+                                        </div>
+                                        <div className="flex-1 flex gap-1.5 items-center justify-between bg-[#111721] p-1 rounded border border-[#1e2733]">
+                                            <span className="text-[10px] font-mono text-gray-400">RGB-Split:</span>
+                                            <input type="checkbox" checked={isRainbowX} onChange={(e) => setIsRainbowX(e.target.checked)} className="accent-emerald-500 cursor-pointer w-3 h-3" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <button
+                                        onClick={handleStartScan}
+                                        className={`w-full py-2.5 px-4 rounded text-xs font-bold font-mono uppercase tracking-wider transition ${
+                                            scanning 
+                                                ? "bg-amber-600 hover:bg-amber-500 text-white animate-pulse" 
+                                                : "bg-emerald-500 hover:bg-emerald-450 text-[#080a0d]"
+                                        }`}>
+                                        <i className={scanning ? "fa-solid fa-pause mr-1" : "fa-solid fa-play mr-1"}></i>
+                                        {scanning ? "Pause Capture" : "Start Scan"}
+                                    </button>
+
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button onClick={handleClearOutput}
+                                            className="py-1.5 px-2 bg-[#131b25] border border-red-900/40 hover:bg-red-950/30 text-red-400 rounded text-[10px] font-mono transition">
+                                            Reset Canvas
+                                        </button>
+                                        <button onClick={handleExport}
+                                            className="py-1.5 px-2 bg-[#131b25] border border-emerald-900/40 hover:bg-emerald-950/30 text-emerald-400 rounded text-[10px] font-mono transition">
+                                            Export PNG
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+
+                    {/* Hotkey Cheat Sheet Overlay */}
+                    <div className="max-w-7xl mx-auto w-full px-6 grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-[#161f29] pt-4 mb-2">
+                        <div className="flex items-center gap-2.5 bg-[#0b1016] border border-[#17212d] p-2.5 rounded text-xs">
+                            <kbd className="bg-[#1f2d3a] px-2 py-0.5 rounded text-emerald-400 font-bold border border-[#2d4052] font-mono shadow shadow-black">Space</kbd>
+                            <span className="text-gray-400 font-mono">Старт / Пауза сканирования</span>
+                        </div>
+                        <div className="flex items-center gap-2.5 bg-[#0b1016] border border-[#17212d] p-2.5 rounded text-xs">
+                            <kbd className="bg-[#1f2d3a] px-2 py-0.5 rounded text-emerald-400 font-bold border border-[#2d4052] font-mono shadow shadow-black font-semibold">D</kbd>
+                            <span className="text-gray-300 font-mono">или</span>
+                            <kbd className="bg-[#1f2d3a] px-1.5 py-0.5 rounded text-emerald-400 font-bold border border-[#2d4052] font-mono shadow shadow-black">←</kbd>
+                            <kbd className="bg-[#1f2d3a] px-1.5 py-0.5 rounded text-emerald-400 font-bold border border-[#2d4052] font-mono shadow shadow-black">→</kbd>
+                            <span className="text-gray-400 font-mono">Смена режима движения луча</span>
+                        </div>
+                        <div className="flex items-center gap-2.5 bg-[#0b1016] border border-[#17212d] p-2.5 rounded text-xs">
+                            <kbd className="bg-[#1f2d3a] px-2 py-0.5 rounded text-emerald-400 font-bold border border-[#2d4052] font-mono shadow shadow-black">[</kbd>
+                            <span className="text-gray-400 font-mono">и</span>
+                            <kbd className="bg-[#1f2d3a] px-2 py-0.5 rounded text-emerald-400 font-bold border border-[#2d4052] font-mono shadow shadow-black">]</kbd>
+                            <span className="text-gray-300 font-mono">или</span>
+                            <kbd className="bg-[#1f2d3a] px-2 py-0.5 rounded text-emerald-400 font-bold border border-[#2d4052] font-mono shadow shadow-black">-</kbd>
+                            <kbd className="bg-[#1f2d3a] px-2 py-0.5 rounded text-emerald-400 font-bold border border-[#2d4052] font-mono shadow shadow-black">+</kbd>
+                            <span className="text-gray-400 font-mono">Изменение скорости (±0.1)</span>
+                        </div>
+                    </div>
+
+                    <footer className="max-w-7xl w-full mx-auto px-6 mt-4 text-xs text-center text-gray-500 font-mono leading-relaxed pb-4">
+                        ⚡ <b>Клавиатурный перформанс:</b> Попробуйте запустить сканирование, зажать мышку на портрете и ритмично кликать `]` и `[` для замедления и ускорения прохода волны, либо нажимать `D`, создавая каскадные перекрестные искажения!
+                    </footer>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
