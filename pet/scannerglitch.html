@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scanner Distortion Lab Creative Pro (Noise & Hotkeys)</title>
-    <!-- Зависимости -->
+    <!-- Dependencies -->
     <script src="https://unpkg.com/react@17/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet font-bold">
     <style>
         body {
             background-color: #05070a;
@@ -27,10 +27,17 @@
         const { useState, useEffect, useRef } = React;
 
         function App() {
-            const [imgUrl, setImgUrl] = useState("https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80");
+            // Updated default presets with uploaded local image paths
+            const presetImages = {
+                girl: "https://raw.githubusercontent.com/toshapetrov/toshapetrov.github.io/refs/heads/main/pet/girl.jpg",
+                defender: "https://raw.githubusercontent.com/toshapetrov/toshapetrov.github.io/refs/heads/main/pet/defender.jpeg",
+                dog: "https://raw.githubusercontent.com/toshapetrov/toshapetrov.github.io/refs/heads/main/pet/dog.jpeg"
+            };
+
+            const [imgUrl, setImgUrl] = useState(presetImages.girl);
             const [scanning, setScanning] = useState(false);
-            
-            // Направление захвата и диапазон
+
+            // Sweep options and boundaries
             const [sweepMode, setSweepMode] = useState("L_to_R"); // L_to_R, R_to_L, T_to_B, B_to_T
             const [scanStart, setScanStart] = useState(0);        
             const [scanEnd, setScanEnd] = useState(480);          
@@ -142,7 +149,7 @@
                 const scaleX = (canvas.width * 0.8) / img.width;
                 const scaleY = (canvas.height * 0.8) / img.height;
                 const newScale = Math.min(scaleX, scaleY, 1);
-                
+
                 setScale(newScale);
                 setOffset({
                     x: (canvas.width - img.width * newScale) / 2,
@@ -154,10 +161,10 @@
                 const canvas = workspaceRef.current;
                 if (!canvas) return;
                 const ctx = canvas.getContext("2d");
-                
+
                 ctx.fillStyle = bgColor;
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
-                
+
                 ctx.strokeStyle = "rgba(45, 60, 80, 0.4)";
                 ctx.lineWidth = 1;
                 const gridSize = 25;
@@ -207,7 +214,7 @@
                     ctx.lineWidth = 3;
                     ctx.shadowColor = scanLineColor;
                     ctx.shadowBlur = 8;
-                    
+
                     const roundedPos = Math.floor(scanPos);
                     ctx.beginPath();
                     if (isHorizontal) {
@@ -247,11 +254,11 @@
                         try {
                             const slice = srcCtx.getImageData(currentPos, 0, roundedSliceWidth, srcCanvas.height);
                             const data = slice.data;
-                            
+
                             for (let y = 0; y < srcCanvas.height; y++) {
                                 for (let dx = 0; y < srcCanvas.height && dx < roundedSliceWidth; dx++) {
                                     const i = (y * roundedSliceWidth + dx) * 4;
-                                    
+
                                     let r = data[i];
                                     let g = data[i+1];
                                     let b = data[i+2];
@@ -302,11 +309,11 @@
                         try {
                             const slice = srcCtx.getImageData(0, currentPos, srcCanvas.width, roundedSliceWidth);
                             const data = slice.data;
-                            
+
                             for (let x = 0; x < srcCanvas.width; x++) {
                                 for (let dy = 0; dy < roundedSliceWidth; dy++) {
                                     const i = (dy * srcCanvas.width + x) * 4;
-                                    
+
                                     let r = data[i];
                                     let g = data[i+1];
                                     let b = data[i+2];
@@ -559,13 +566,16 @@
                                         <span>Upload Local File</span>
                                         <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
                                     </label>
-                                    <div className="flex gap-2">
-                                        <button onClick={() => loadPreset("https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80")}
-                                            className="flex-1 text-[10px] font-mono py-1 bg-[#10141b] border border-[#1c2430] hover:border-emerald-500 rounded text-gray-300">Port 1</button>
-                                        <button onClick={() => loadPreset("https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=80")}
-                                            className="flex-1 text-[10px] font-mono py-1 bg-[#10141b] border border-[#1c2430] hover:border-emerald-500 rounded text-gray-300">Port 2</button>
-                                        <button onClick={() => loadPreset("https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=800&q=80")}
-                                            className="flex-1 text-[10px] font-mono py-1 bg-[#10141b] border border-[#1c2430] hover:border-emerald-500 rounded text-gray-300">Concept</button>
+                                    <div className="flex flex-col gap-2">
+                                        <div className="text-[11px] text-gray-500 font-mono uppercase tracking-wider mb-1">Custom Presets / Projects:</div>
+                                        <div className="flex gap-2">
+                                            <button onClick={() => loadPreset(presetImages.girl)}
+                                                className={`flex-1 text-[11px] font-bold font-mono py-1.5 border hover:border-emerald-500 rounded text-gray-300 transition ${imgUrl === presetImages.girl ? "bg-emerald-950/60 border-emerald-500 text-emerald-400" : "bg-[#10141b] border-[#1c2430]"}`}>Girl</button>
+                                            <button onClick={() => loadPreset(presetImages.defender)}
+                                                className={`flex-1 text-[11px] font-bold font-mono py-1.5 border hover:border-emerald-500 rounded text-gray-300 transition ${imgUrl === presetImages.defender ? "bg-emerald-950/60 border-emerald-500 text-emerald-400" : "bg-[#10141b] border-[#1c2430]"}`}>Defender</button>
+                                            <button onClick={() => loadPreset(presetImages.dog)}
+                                                className={`flex-1 text-[11px] font-bold font-mono py-1.5 border hover:border-emerald-500 rounded text-gray-300 transition ${imgUrl === presetImages.dog ? "bg-emerald-950/60 border-emerald-500 text-emerald-400" : "bg-[#10141b] border-[#1c2430]"}`}>Dog</button>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -678,7 +688,7 @@
 
                             <div className="space-y-4">
                                 <label className="text-xs font-bold font-mono text-gray-400 block mb-1 uppercase">3. Physics & Waves</label>
-                                
+
                                 <div className="space-y-3">
                                     <div>
                                         <div className="flex justify-between text-xs font-mono text-gray-400 mb-1">
@@ -734,7 +744,7 @@
                             <div className="space-y-3 flex flex-col justify-between">
                                 <div>
                                     <label className="text-xs font-bold font-mono text-gray-400 block mb-1 uppercase">4. Color, Line & Noise</label>
-                                    
+
                                     <div className="grid grid-cols-4 gap-1 mb-2">
                                         <button onClick={() => setColorMode("color")}
                                             className={`py-1 rounded text-[10px] font-mono border transition ${colorMode === "color" ? "bg-emerald-950/60 text-emerald-400 border-emerald-400" : "bg-[#141a22] text-gray-400 border-[#2b3949]"}`}>RGB</button>
