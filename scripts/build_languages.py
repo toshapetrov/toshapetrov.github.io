@@ -127,7 +127,20 @@ def language_nav(lang,rel):
   items.append('<a href="'+href+'"'+hint+' lang="'+('zh-Hans' if target=='zh' else target)+'" hreflang="'+('zh-Hans' if target=='zh' else target)+'"'+current+'>'+label+'</a>')
  return '<nav class="language-nav" aria-label="'+{'ru':'Язык сайта','en':'Language','zh':'语言'}[lang]+'">'+'<span aria-hidden="true">/</span>'.join(items)+'</nav>'
 
+def navigation_source(text):
+ text=re.sub(r'<details class="mobile-menu">.*?</details>\s*','',text,flags=re.S)
+ return text.replace('class="site-nav site-nav-desktop"','class="site-nav"')
+
+def responsive_navigation(text,lang):
+ text=navigation_source(text)
+ def render(match):
+  nav=match[0]
+  label={'ru':'Меню','en':'Menu','zh':'菜单'}[lang]
+  return nav.replace('class="site-nav"','class="site-nav site-nav-desktop"',1)+'\n<details class="mobile-menu"><summary>'+label+'<span class="menu-symbol" aria-hidden="true"></span></summary>'+nav+'</details>'
+ return re.sub(r'<nav class="site-nav"[^>]*>.*?</nav>',render,text,flags=re.S)
+
 def finalize(text,lang,rel):
+ text=responsive_navigation(text,lang)
  # Rebuild generated metadata from current text; never add it to verification files.
  text=re.sub(r'<link\b[^>]*rel="alternate"[^>]*>\s*','',text)
  text=re.sub(r'<nav class="language-nav".*?</nav>\s*','',text,flags=re.S)
@@ -150,6 +163,7 @@ def finalize(text,lang,rel):
  return text
 
 def clean_source(text):
+ text=navigation_source(text)
  text=re.sub(r'<nav class="language-nav".*?</nav>\s*','',text,flags=re.S)
  text=re.sub(r'<div class="footer-row">(.*?)</div>',r'\1',text,flags=re.S)
  return re.sub(r'<script type="application/ld\+json">.*?</script>\s*','',text,flags=re.S)
@@ -175,6 +189,8 @@ def selected_chinese(rel):
   original=original_heading('exhibitions/'+slug+'.html')
   if re.search('[А-Яа-яЁё]',original):name+=' · '+original
   body+='<section><h2><a href="exhibitions/'+slug+'.html">'+name+'</a></h2><p class="meta">'+year+' · '+venue+'</p><p>'+description+'</p></section>'
+ if rel=='portfolio.html':
+  body+='<section><h2><a href="https://t.me/addstickers/this_is_the_end" target="_blank" rel="noopener noreferrer">一切都结束了 · «Это конец»</a></h2><p>为Telegram创作的原创贴纸包。</p><p class="project-meta">累计使用超过2.54亿次，安装超过470万次。Telegram累计统计数据，截至<time datetime="2026-11-15">2026年11月15日</time>。</p></section>'
  body+='<p><a href="../en/'+rel+'">查看完整列表（英文） →</a></p></main>'
  text=re.sub(r'<main\b[^>]*>.*?</main>',lambda _:body,text,flags=re.S)
  text=re.sub(r'<title>.*?</title>','<title>'+title+'</title>',text,flags=re.S)
