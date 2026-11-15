@@ -77,3 +77,18 @@
 @media (max-width: 560px) {
   .content-page .contact-layout { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
 }
+
+/* Native disclosure keeps the mobile menu usable without JavaScript. */
+.content-page .mobile-menu { display:none; }
+@media (max-width:760px) {
+  .content-page .site-nav-desktop { display:none; }
+  .content-page .mobile-menu { display:block; margin:0 0 1.6rem; font-size:.9em; }
+  .content-page .mobile-menu summary { display:flex; align-items:center; gap:.7em; width:fit-content; min-height:44px; cursor:pointer; list-style:none; color:#111; }
+  .content-page .mobile-menu summary::-webkit-details-marker { display:none; }
+  .content-page .mobile-menu summary::marker { content:""; }
+  .content-page .mobile-menu .menu-symbol::before { content:"+"; }
+  .content-page .mobile-menu[open] .menu-symbol::before { content:"−"; }
+  .content-page .mobile-menu summary:focus-visible { outline:2px solid currentColor; outline-offset:4px; }
+  .content-page .mobile-menu .site-nav { display:flex; flex-direction:column; align-items:flex-start; gap:0; margin:.5rem 0 0; padding:0 0 .8rem; border-bottom:1px solid #ddd; font-size:inherit; }
+  .content-page .mobile-menu .site-nav a { width:100%; min-height:44px; }
+}
