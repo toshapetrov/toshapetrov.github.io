@@ -1,0 +1,20 @@
+/* Exhibition pages share the site's monospace typography. */
+.exhibition-project { padding: 1rem; }
+.exhibition-project h1 { overflow-wrap: anywhere; line-height: 1.3; }
+.exhibition-project figure { margin: 2rem 0; }
+.exhibition-project .media-link { display: block; margin: 0; }
+.exhibition-project img { display: block; max-width: 100%; width: auto; height: auto; max-height: 900px; }
+.exhibition-project video { display: block; width: 100%; height: auto; background: #111; }
+.exhibition-project video.portrait { max-width: 352px; }
+.exhibition-project figcaption { margin-top: .5rem; font-size: .9em; }
+.exhibition-project p a, .exhibition-project figcaption a { display: inline; margin: 0; text-decoration: underline; }
+.exhibition-project .project-links { margin-top: 2rem; }
+.exhibition-project details { margin: 2rem 0; }
+.exhibition-project summary { cursor: pointer; text-decoration: underline; }
+.exhibition-project summary:focus-visible, .exhibition-project a:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
+.exhibition-project .project-footer { margin-top: 3rem; }
+@media (max-width: 640px) {
+  body.exhibition-detail { padding: 20px; }
+  .exhibition-project { padding: 0; }
+  .exhibition-project img { max-height: none; }
+}

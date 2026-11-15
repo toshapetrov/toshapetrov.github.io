@@ -1,15 +1,10 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-
-  <!-- Основные страницы -->
   <url><loc>https://toshapetrov.ru/</loc></url>
   <url><loc>https://toshapetrov.ru/art-statement.html</loc></url>
   <url><loc>https://toshapetrov.ru/portfolio.html</loc></url>
   <url><loc>https://toshapetrov.ru/exhibitions.html</loc></url>
-  <url><loc>https://toshapetrov.ru/collaborations.html</loc></url>
   <url><loc>https://toshapetrov.ru/contact.html</loc></url>
-
-  <!-- Страницы выставок -->
   <url><loc>https://toshapetrov.ru/exhibitions/festival-nur-2025.html</loc></url>
   <url><loc>https://toshapetrov.ru/exhibitions/ai-surrealism-2023.html</loc></url>
   <url><loc>https://toshapetrov.ru/exhibitions/nft-paris-2023.html</loc></url>
@@ -20,5 +15,21 @@
   <url><loc>https://toshapetrov.ru/exhibitions/festival-outline-2025.html</loc></url>
   <url><loc>https://toshapetrov.ru/exhibitions/vnutrishow-2025.html</loc></url>
   <url><loc>https://toshapetrov.ru/exhibitions/meoldica-gazgolder-2025.html</loc></url>
-
-</urlset>
+  <url><loc>https://toshapetrov.ru/exhibitions/ai-surrealism-2024.html</loc></url>
+  <url><loc>https://toshapetrov.ru/exhibitions/defile-v-kostyumah-lva-baksta-2026.html</loc></url>
+  <url><loc>https://toshapetrov.ru/exhibitions/hi-hi-ha-ha.html</loc></url>
+  <url><loc>https://toshapetrov.ru/exhibitions/ishodny-kod-2024.html</loc></url>
+  <url><loc>https://toshapetrov.ru/exhibitions/lenovo-2024.html</loc></url>
+  <url><loc>https://toshapetrov.ru/exhibitions/narspi-2024.html</loc></url>
+  <url><loc>https://toshapetrov.ru/exhibitions/noch-muzeev-2026.html</loc></url>
+  <url><loc>https://toshapetrov.ru/exhibitions/obrazy-pamyati-2025.html</loc></url>
+  <url><loc>https://toshapetrov.ru/exhibitions/okno-v-pamyat-2026.html</loc></url>
+  <url><loc>https://toshapetrov.ru/exhibitions/potok-2025.html</loc></url>
+  <url><loc>https://toshapetrov.ru/exhibitions/speech-to-art-cipr-2026.html</loc></url>
+  <url><loc>https://toshapetrov.ru/exhibitions/svoevreemennost-2025.html</loc></url>
+  <url><loc>https://toshapetrov.ru/exhibitions/teatr-2025.html</loc></url>
+  <url><loc>https://toshapetrov.ru/exhibitions/times-square-2023.html</loc></url>
+  <url><loc>https://toshapetrov.ru/exhibitions/u-reki-dva-berega-2026.html</loc></url>
+  <url><loc>https://toshapetrov.ru/links.html</loc></url>
+  <url><loc>https://toshapetrov.ru/press.html</loc></url>
+<url><loc>https://toshapetrov.ru/en/art-statement.html</loc></url><url><loc>https://toshapetrov.ru/en/contact.html</loc></url><url><loc>https://toshapetrov.ru/en/exhibitions/ai-surrealism-2023.html</loc></url><url><loc>https://toshapetrov.ru/en/exhibitions/ai-surrealism-2024.html</loc></url><url><loc>https://toshapetrov.ru/en/exhibitions/art-life-2023.html</loc></url><url><loc>https://toshapetrov.ru/en/exhibitions/defile-v-kostyumah-lva-baksta-2026.html</loc></url><url><loc>https://toshapetrov.ru/en/exhibitions/festival-nur-2025.html</loc></url><url><loc>https://toshapetrov.ru/en/exhibitions/festival-outline-2025.html</loc></url><url><loc>https://toshapetrov.ru/en/exhibitions/hi-hi-ha-ha.html</loc></url><url><loc>https://toshapetrov.ru/en/exhibitions/ishodny-kod-2024.html</loc></url><url><loc>https://toshapetrov.ru/en/exhibitions/lenovo-2024.html</loc></url><url><loc>https://toshapetrov.ru/en/exhibitions/meoldica-gazgolder-2025.html</loc></url><url><loc>https://toshapetrov.ru/en/exhibitions/moscow-fest-2023.html</loc></url><url><loc>https://toshapetrov.ru/en/exhibitions/narspi-2024.html</loc></url><url><loc>https://toshapetrov.ru/en/exhibitions/nft-korea-2023.html</loc></url><url><loc>https://toshapetrov.ru/en/exhibitions/nft-nyc-2023.html</loc></url><url><loc>https://toshapetrov.ru/en/exhibitions/nft-paris-2023.html</loc></url><url><loc>https://toshapetrov.ru/en/exhibitions/noch-muzeev-2026.html</loc></url><url><loc>https://toshapetrov.ru/en/exhibitions/obrazy-pamyati-2025.html</loc></url><url><loc>https://toshapetrov.ru/en/exhibitions/okno-v-pamyat-2026.html</loc></url><url><loc>https://toshapetrov.ru/en/exhibitions/potok-2025.html</loc></url><url><loc>https://toshapetrov.ru/en/exhibitions/speech-to-art-cipr-2026.html</loc></url><url><loc>https://toshapetrov.ru/en/exhibitions/svoevreemennost-2025.html</loc></url><url><loc>https://toshapetrov.ru/en/exhibitions/teatr-2025.html</loc></url><url><loc>https://toshapetrov.ru/en/exhibitions/times-square-2023.html</loc></url><url><loc>https://toshapetrov.ru/en/exhibitions/u-reki-dva-berega-2026.html</loc></url><url><loc>https://toshapetrov.ru/en/exhibitions/vnutrishow-2025.html</loc></url><url><loc>https://toshapetrov.ru/en/exhibitions.html</loc></url><url><loc>https://toshapetrov.ru/en/</loc></url><url><loc>https://toshapetrov.ru/en/links.html</loc></url><url><loc>https://toshapetrov.ru/en/portfolio.html</loc></url><url><loc>https://toshapetrov.ru/en/press.html</loc></url><url><loc>https://toshapetrov.ru/zh/</loc></url><url><loc>https://toshapetrov.ru/zh/art-statement.html</loc></url><url><loc>https://toshapetrov.ru/zh/portfolio.html</loc></url><url><loc>https://toshapetrov.ru/zh/exhibitions.html</loc></url><url><loc>https://toshapetrov.ru/zh/contact.html</loc></url><url><loc>https://toshapetrov.ru/zh/links.html</loc></url><url><loc>https://toshapetrov.ru/zh/exhibitions/defile-v-kostyumah-lva-baksta-2026.html</loc></url><url><loc>https://toshapetrov.ru/zh/exhibitions/obrazy-pamyati-2025.html</loc></url><url><loc>https://toshapetrov.ru/zh/exhibitions/u-reki-dva-berega-2026.html</loc></url><url><loc>https://toshapetrov.ru/zh/exhibitions/meoldica-gazgolder-2025.html</loc></url><url><loc>https://toshapetrov.ru/zh/exhibitions/lenovo-2024.html</loc></url><url><loc>https://toshapetrov.ru/pet/scannerglitch.html</loc></url></urlset>
