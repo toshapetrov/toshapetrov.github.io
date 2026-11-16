@@ -8,7 +8,7 @@ BASE='https://toshapetrov.ru'
 ZH=json.loads((ROOT/'translations/zh.json').read_text())
 EN=json.loads((ROOT/'translations/en.json').read_text())
 RUFILES=[p.relative_to(ROOT).as_posix() for p in sorted(ROOT.rglob('*.html')) if p.relative_to(ROOT).parts[0] not in ['en','zh','pet'] and not p.name.startswith(('google','yandex'))]
-ZHFILES=['index.html','art-statement.html','portfolio.html','exhibitions.html','contact.html','links.html']+['exhibitions/'+s+'.html' for s in ['defile-v-kostyumah-lva-baksta-2026','obrazy-pamyati-2025','u-reki-dva-berega-2026','meoldica-gazgolder-2025','lenovo-2024']]
+ZHFILES=['index.html','art-statement.html','portfolio.html','exhibitions.html','contact.html','links.html']+['exhibitions/'+s+'.html' for s in ['defile-v-kostyumah-lva-baksta-2026','obrazy-pamyati-2025','u-reki-dva-berega-2026','meoldica-gazgolder-2025','lenovo-2024','okno-v-pamyat-2026']]
 normalize=lambda s:' '.join(s.split())
 def tr(s):
  key=normalize(s)
@@ -177,6 +177,7 @@ def translated(rel,lang):
 def selected_chinese(rel):
  text=translated('index.html','zh')
  projects=[
+ ('2026','okno-v-pamyat-2026','记忆之窗','ZIL文化中心，莫斯科','视频作品《在信息流中》，探讨信息过载与反复回归的信息消费习惯。'),
  ('2026','defile-v-kostyumah-lva-baksta-2026','列昂·巴克斯特服装影像秀','特列季亚科夫画廊，莫斯科','根据巴克斯特服装设计稿制作动画。'),
  ('2026','u-reki-dva-berega-2026','一河两岸','MIRA中心 · Collider，苏兹达尔','作品《显而易见／不易察觉》；与策展人紧密合作，负责所有参展作品的视频剪辑。'),
  ('2025','obrazy-pamyati-2025','记忆的影像','MOÑ剧院，喀山','为舞台项目创作视频艺术，探索身体、运动与记忆之间的关系。'),
@@ -188,6 +189,9 @@ def selected_chinese(rel):
  for year,slug,name,venue,description in projects:
   original=original_heading('exhibitions/'+slug+'.html')
   if re.search('[А-Яа-яЁё]',original):name+=' · '+original
+  if rel=='portfolio.html':
+   previews={'okno-v-pamyat-2026':('okno-v-pamyat-2026/artwork-still.webp',1600,900),'u-reki-dva-berega-2026':('u-reki-dva-berega-2026/photo-04.webp',1672,941)}
+   if slug in previews:body+='<figure><a href="exhibitions/'+slug+'.html"><img src="../images/'+previews[slug][0]+'" width="'+str(previews[slug][1])+'" height="'+str(previews[slug][2])+'" loading="lazy" decoding="async" alt="'+name+'"></a></figure>'
   body+='<section><h2><a href="exhibitions/'+slug+'.html">'+name+'</a></h2><p class="meta">'+year+' · '+venue+'</p><p>'+description+'</p></section>'
  if rel=='portfolio.html':
   body+='<section><h2><a href="https://t.me/addstickers/this_is_the_end" target="_blank" rel="noopener noreferrer">一切都结束了 · «Это конец»</a></h2><p>为Telegram创作的原创贴纸包。</p><p class="project-meta">累计使用超过2.54亿次，安装超过470万次。Telegram累计统计数据，截至<time datetime="2026-11-15">2026年11月15日</time>。</p></section>'
