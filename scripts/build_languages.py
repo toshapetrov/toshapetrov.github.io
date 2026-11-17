@@ -139,7 +139,22 @@ def responsive_navigation(text,lang):
   return nav.replace('class="site-nav"','class="site-nav site-nav-desktop"',1)+'\n<details class="mobile-menu"><summary>'+label+'<span class="menu-symbol" aria-hidden="true"></span></summary>'+nav+'</details>'
  return re.sub(r'<nav class="site-nav"[^>]*>.*?</nav>',render,text,flags=re.S)
 
+METRICA_SCRIPT='<script type="text/javascript" >\n   (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};\n   m[i].l=1*new Date();\n   for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}\n   k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})\n   (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");\n\n   ym(102196430, "init", {\n        clickmap:true,\n        trackLinks:true,\n        accurateTrackBounce:true,\n        webvisor:true\n   });\n</script>'
+METRICA_NOSCRIPT='<noscript><div><img src="https://mc.yandex.ru/watch/102196430" style="position:absolute;left:-9999px;" alt=""></div></noscript>'
+
+def ensure_metrica(text):
+ # Keep the existing counter and settings, and initialize it exactly once.
+ text=re.sub(r'<script\b[^>]*>.*?</script>\s*',lambda m:'' if re.search(r'ym\(\s*102196430\s*,',m[0]) else m[0],text,flags=re.S)
+ text=re.sub(r'<noscript\b[^>]*>.*?</noscript>\s*',lambda m:'' if 'mc.yandex.ru/watch/102196430' in m[0] else m[0],text,flags=re.S)
+ charset=re.search(r'<meta\s+charset=[^>]*>',text,re.I)
+ position=charset.end() if charset else re.search(r'<head[^>]*>',text,re.I).end()
+ text=text[:position]+'\n'+METRICA_SCRIPT+'\n'+text[position:].lstrip('\r\n')
+ body=re.search(r'<body[^>]*>',text,re.I)
+ if body:text=text[:body.end()]+'\n'+METRICA_NOSCRIPT+'\n'+text[body.end():].lstrip('\r\n')
+ return text
+
 def finalize(text,lang,rel):
+ text=ensure_metrica(text)
  text=responsive_navigation(text,lang)
  # Rebuild generated metadata from current text; never add it to verification files.
  text=re.sub(r'<link\b[^>]*rel="alternate"[^>]*>\s*','',text)
@@ -214,6 +229,8 @@ def build():
   out=ROOT/'zh'/rel;out.parent.mkdir(parents=True,exist_ok=True);out.write_text(finalize(text,'zh',rel))
  for rel in RUFILES:
   p=ROOT/rel;p.write_text(finalize(p.read_text(),'ru',rel))
+ for p in (ROOT/'pet').rglob('*.html'):
+  p.write_text(ensure_metrica(p.read_text()))
  ns='http://www.sitemaps.org/schemas/sitemap/0.9';ET.register_namespace('',ns)
  tree=ET.parse(ROOT/'sitemap.xml');root=tree.getroot();existing={e.text for e in root.iter('{'+ns+'}loc')}
  for lang,files in [('en',RUFILES),('zh',ZHFILES)]:
